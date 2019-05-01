@@ -1,4 +1,5 @@
 {
-  "domain": "hobochild.tk",
-  "callback_url": "hiii"
+  "domain": "transparently.app",
+  "callback_url": "http://localhost:3000",
+  "challenge": "808bdb2e-8047-11e9-8aa5-9cb6d089854f"
 }
