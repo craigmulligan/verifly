@@ -1,5 +1,5 @@
 {
   "domain": "transparently.app",
   "callback_url": "http://localhost:3000",
-  "challenge": "808bdb2e-8047-11e9-8aa5-9cb6d089854f"
+  "challenge": "verifly-site-verification=2c610db4-8052-11e9-9f72-9cb6d089854f"
 }

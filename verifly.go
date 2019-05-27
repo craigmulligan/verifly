@@ -59,7 +59,7 @@ func notify(rw *http.Request, payload Record) (*http.Response, error) {
 
 func createChallenge() (string, error) {
 	id, err := uuid.NewUUID()
-	return id.String(), err
+	return "verifly-site-verification=" + id.String(), err
 }
 
 func PostTask(record Record) *taskqueue.Task {
@@ -98,8 +98,9 @@ func worker(rw http.ResponseWriter, req *http.Request) {
 		log.Fatalln(err)
 	}
 
-	if record.Domain == "" {
+	if record.Challenge == "" {
 		challenge, _ := createChallenge()
+		log.Printf(challenge)
 		record.Challenge = challenge
 	}
 
