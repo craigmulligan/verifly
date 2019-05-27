@@ -8,9 +8,12 @@ import (
 	"google.golang.org/appengine" // Required external App Engine library
 	"google.golang.org/appengine/taskqueue"
 	"google.golang.org/appengine/urlfetch"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -21,22 +24,81 @@ type Record struct {
 	CallbackUrl string `json:"callback_url"`
 }
 
-func lookupRecord(record *Record) bool {
+type CloudFlareRecord struct {
+	Data string `json:"data"`
+}
+
+type CloudFlareRes struct {
+	Answer []CloudFlareRecord `json:"Answer"`
+}
+
+func lookupRecord(record *Record) (bool, error) {
 	txtrecords, err := net.LookupTXT(record.Domain)
 
 	if err != nil {
-		log.Fatalln(err)
-		return false
+		return false, err
 	}
 
 	for _, txt := range txtrecords {
 		if txt == record.Challenge {
-			return true
+			return true, nil
 		}
 
 	}
 
-	return false
+	return false, nil
+}
+
+func lookupRecordHttp(ctx context.Context, payload Record) (bool, error) {
+	client := urlfetch.Client(ctx)
+	req, err := http.NewRequest("GET", "https://cloudflare-dns.com/dns-query", nil)
+	req.Header.Add("accept", "application/dns-json")
+
+	// or you can create new url.Values struct and encode that like so
+	q := url.Values{}
+	q.Add("name", "transparently.app")
+	q.Add("type", "TXT")
+
+	req.URL.RawQuery = q.Encode()
+	log.Printf(req.URL.RawQuery)
+
+	if err != nil {
+		return false, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer res.Body.Close()
+
+	var records CloudFlareRes
+	body, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return false, err
+	}
+
+	err = json.Unmarshal(body, &records)
+	if err != nil {
+		return false, err
+	}
+
+	for _, txt := range records.Answer {
+		s := txt.Data
+		s = strings.TrimSuffix(s, "\"")
+		s = strings.TrimPrefix(s, "\"")
+		if s == payload.Challenge {
+			return true, nil
+		}
+	}
+
+	return false, nil
+
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func notify(rw *http.Request, payload Record) (*http.Response, error) {
@@ -100,7 +162,6 @@ func worker(rw http.ResponseWriter, req *http.Request) {
 
 	if record.Challenge == "" {
 		challenge, _ := createChallenge()
-		log.Printf(challenge)
 		record.Challenge = challenge
 	}
 
@@ -114,6 +175,8 @@ func worker(rw http.ResponseWriter, req *http.Request) {
 }
 
 func challenge(rw http.ResponseWriter, req *http.Request) {
+	ctx := appengine.NewContext(req)
+
 	decoder := json.NewDecoder(req.Body)
 	var record Record
 
@@ -123,13 +186,23 @@ func challenge(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	log.Printf("Worker challenge", record.Challenge)
-	record.Verified = lookupRecord(&record)
 
+	verified, err := lookupRecordHttp(ctx, record)
+
+	if err != nil {
+		log.Printf("err", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(rw).Encode(err)
+		return
+	}
+
+	record.Verified = verified
 	// Finished
 	if record.Verified {
-		res, err := notify(req, record)
+		_, err := notify(req, record)
 		if err != nil {
-			rw.WriteHeader(res.StatusCode)
+			rw.WriteHeader(200)
+			json.NewEncoder(rw).Encode(record)
 			return
 		}
 		log.Printf("Worker complete", record.Challenge)
