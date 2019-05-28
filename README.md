@@ -1,29 +1,29 @@
 ## Verifly
 
-> Domain verification as a service.
+> Domain verification as a service
 
 There are two ways to verify a domain.
 
 1. Start a worker to verify a dns `txt` record. It will try for 30 minutes with exponential backoff:
 
 ```
-curl -X POST http://localhost:8080/worker -H 'Content-Type: application/json' -d @data.json
+curl -X POST http://verifly.xyz/worker -H 'Content-Type: application/json' -d @data.json
 ```
 
 2. Directly call a challenge:
 
 ```
-curl -X POST http://localhost:8080/worker -H 'Content-Type: application/json' -d @data.json
+curl -X POST http://verifly.xyz/challenge -H 'Content-Type: application/json' -d @data.json
 ```
 
-The payload for both endpoints is the same.
+The payload for both endpoints is the same, the challenge being optional for the first.
 
 ```json
 {
   // The domain you want to verify
   "domain": "transparently.app",
   // The callback url where we post success or failure.
-  "callback_url": "http://localhost:3000",
+  "callback_url": "http://my-domain",
   // The unique challenge the user should update their txt records with. (optional)
   "challenge": "808bdb2e-8047-11e9-8aa5-9cb6d089854f"
 }
@@ -36,7 +36,7 @@ The `callback_url` is called with the following payload:
   // The domain you want to verify
   "domain": "transparently.app",
   // The callback url where we post success or failure.
-  "callback_url": "http://localhost:3000",
+  "callback_url": "http://my-domain",
   // The unique challenge  - the user should update their txt records with. (optional)
   "challenge": "808bdb2e-8047-11e9-8aa5-9cb6d089854f"
   // Whether the txt record was found and the domain is therefore verified.
