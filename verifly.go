@@ -49,6 +49,7 @@ func lookupRecord(record *Record) (bool, error) {
 	return false, nil
 }
 
+// We use http instead of udp dns query because appengine standard has specific requirements on socket use.
 func lookupRecordHttp(ctx context.Context, payload Record) (bool, error) {
 	client := urlfetch.Client(ctx)
 	req, err := http.NewRequest("GET", "https://cloudflare-dns.com/dns-query", nil)
@@ -201,7 +202,8 @@ func challenge(rw http.ResponseWriter, req *http.Request) {
 	if record.Verified {
 		_, err := notify(req, record)
 		if err != nil {
-			rw.WriteHeader(200)
+			log.Printf("Could not notify caller %+v", record.Challenge)
+			rw.WriteHeader(502)
 			json.NewEncoder(rw).Encode(record)
 			return
 		}
