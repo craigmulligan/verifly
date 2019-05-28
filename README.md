@@ -1,4 +1,4 @@
-## Verifly
+## Verifly 😎
 
 > Domain verification as a service
 
@@ -7,18 +7,18 @@ There are two ways to verify a domain.
 1. Start a worker to verify a dns `txt` record. It will try for 30 minutes with exponential backoff:
 
 ```
-curl -X POST http://verifly.xyz/worker -H 'Content-Type: application/json' -d @data.json
+curl -X POST https://verifly.xyz/worker -H 'Content-Type: application/json' -d @data.json
 ```
 
 2. Directly call a challenge:
 
 ```
-curl -X POST http://verifly.xyz/challenge -H 'Content-Type: application/json' -d @data.json
+curl -X POST https://verifly.xyz/challenge -H 'Content-Type: application/json' -d @data.json
 ```
 
 The payload for both endpoints is the same, the challenge being optional for the first.
 
-```json
+```
 {
   // The domain you want to verify
   "domain": "transparently.app",
@@ -31,7 +31,7 @@ The payload for both endpoints is the same, the challenge being optional for the
 
 The `callback_url` is called with the following payload:
 
-```json
+```
 {
   // The domain you want to verify
   "domain": "transparently.app",
